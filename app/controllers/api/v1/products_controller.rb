@@ -1,6 +1,7 @@
 class Api::V1::ProductsController < ApplicationController
   def create
-    product = Product.new(product_params)
+    product = Product.create(product_params)
+
     puts ("new")
     puts product.inspect
     variant_count = 1
@@ -8,34 +9,35 @@ class Api::V1::ProductsController < ApplicationController
     variant_ids = []
     option_ids = []
     option_value_ids = []
+    option_value_group = []
     params[:options].map do |option|
         opt = Option.create(name: option["name"])
         option_ids.push(opt.id)
         variant_count *= option[:option_values].size
+        option_value_ids = []
         option[:option_values].map do |opt_val|
             option_value = OptionValue.create(values: opt_val, option_id: opt.id)
             option_value_ids.push(option_value.id)
         end
-    end
-
-    variant_count.times do |i|
-      variant_ids.push(i + 1)
+        option_value_group.push(option_value_ids)
     end
 
     vov_count = variant_count * params[:options].size
-    vov_count.times do |i|
-      VariantOptionValue.create(option_id: option_ids, option_value_id: option_value_ids, variant_id: variant_ids)
-    end
 
-
-    if product.save
-        variant_count.times do |i|
-        Variant.create(product_id: product.id)
-      end
-      render json: product, status: :created
-    else
-      render json: product.errors, status: :unprocessable_entity
+    variant_count.times do |i|
+        variant = Variant.create(product_id: product.id)
+        variant_ids.push(variant.id)
     end
+    puts ("variant_ids")
+    puts (variant_ids)
+    puts ("option_ids")
+    puts (option_ids)
+    puts ("option_value_ids")
+    puts (option_value_ids)
+    puts ("option_value_group")
+    pp (option_value_group)
+
+    render plain: "ok"
   end
 
   private
