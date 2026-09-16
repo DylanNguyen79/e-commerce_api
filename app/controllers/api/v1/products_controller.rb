@@ -9,15 +9,16 @@ class Api::V1::ProductsController < ApplicationController
     option_ids = []
     option_value_ids = []
     option_value_group = []
+    vov_arr = []
     params[:options].map do |option|
-        opt = Option.create!(name: option["name"])
+        opt = Option.create(name: option["name"])
         option_ids.push(opt.id)
 
         variant_count *= option[:option_values].size
 
         option_value_ids = []
         option[:option_values].map do |opt_val|
-            option_value = OptionValue.create!(values: opt_val, option_id: opt.id)
+            option_value = OptionValue.create(values: opt_val, option_id: opt.id)
             option_value_ids.push(option_value.id)
         end
         option_value_group.push(option_value_ids)
@@ -40,24 +41,25 @@ class Api::V1::ProductsController < ApplicationController
     puts ("option_value_group.flatten")
     puts (option_value_group.flatten)
 
-    combination = option_value_group[0].product(option_value_group[1])
-
-    combination.each_with_index do |option_values, index|
-      variant_id = variant_ids[index]
-
-      option_values.each_with_index do |option_value_id, option_index|
-        option_id = option_ids[index]
-
-        puts ("option_id")
-        puts (option_id)
-        variant_option_value = VariantOptionValue.create!(
-            variant_id: variant_id,
-            option_id: option_id,
-            option_value_id: option_value_id
-        )
-
-        puts (variant_option_value.inspect)
+    option_value_group.each_with_index do |opt_val, j|
+      t = variant_ids.size / opt_val.size
+      t.times do |x|
+        opt_val.each do |z|
+          vov_arr.push(option_id: option_ids[j], option_value_id: z)
+        end
       end
+    end
+    vov_arr.each_with_index do |var, i|
+      vov_arr[i][:variant_id] = variant_ids[i % variant_ids.size]
+    end
+    puts "VarientOptionValue ---> #{vov_arr}"
+
+    vov_arr.each do |vov|
+        VariantOptionValue.create!(
+            variant_id: vov[:variant_id],
+            option_id: vov[:option_id],
+            option_value_id: vov[:option_value_id]
+        )
     end
 
     render plain: "ok"
