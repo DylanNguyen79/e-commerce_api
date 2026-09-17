@@ -1,5 +1,19 @@
 class Api::V1::ProductsController < ApplicationController
-  def create
+    def index
+      render json: Product.all, status: :ok
+    end
+
+    def show
+      product = Product.find_by(id: params[:id])
+
+      if product
+        render json: product, status: :ok
+      else
+        render json: { message: "Product not found" }, status: :not_found
+      end
+    end
+
+    def create
     product = Product.create(product_params)
 
     puts ("new")
@@ -10,6 +24,8 @@ class Api::V1::ProductsController < ApplicationController
     option_value_ids = []
     option_value_group = []
     vov_arr = []
+
+    # Get Option ID && Option Value ID
     params[:options].map do |option|
         opt = Option.create(name: option["name"])
         option_ids.push(opt.id)
@@ -24,23 +40,28 @@ class Api::V1::ProductsController < ApplicationController
         option_value_group.push(option_value_ids)
     end
 
-    variant_count.times do |i|
-        variant = Variant.create(product_id: product.id)
+    params[:variants].each do |variant|
+        variant = Variant.create(
+            product_id: product.id,
+            sku: variant[:sku],
+            stock: variant[:stock],
+            variant_price: variant[:variant_price],
+        )
         variant_ids.push(variant.id)
     end
-    puts ("variant_ids")
-    puts (variant_ids)
-    puts ("option_ids")
-    puts (option_ids)
-    puts ("option_value_ids")
-    puts (option_value_ids)
-    puts ("option_value_group")
-    puts (option_value_group)
-    puts ("option_value_ids.size")
-    puts (option_value_ids.size)
-    puts ("option_value_group.flatten")
-    puts (option_value_group.flatten)
 
+    # # Get Variant ID
+    # variant_count.times do |i|
+    #     variant = Variant.create(
+    #         product_id: product.id,
+    #         sku:
+    #         price: product.price
+    #         stock:
+    #         )
+    #     variant_ids.push(variant.id)
+    # end
+
+    # Create data for VariantOptionValue
     option_value_group.each_with_index do |opt_val, j|
       t = variant_ids.size / opt_val.size
       t.times do |x|
@@ -52,17 +73,38 @@ class Api::V1::ProductsController < ApplicationController
     vov_arr.each_with_index do |var, i|
       vov_arr[i][:variant_id] = variant_ids[i % variant_ids.size]
     end
-    puts "VarientOptionValue ---> #{vov_arr}"
 
     vov_arr.each do |vov|
-        VariantOptionValue.create!(
+        VariantOptionValue.create(
             variant_id: vov[:variant_id],
             option_id: vov[:option_id],
             option_value_id: vov[:option_value_id]
         )
     end
 
-    render plain: "ok"
+    render json: product, status: :created
+    end
+
+  def update
+    product = Product.find_by(id: params[:id])
+
+    if product && product.update(product_params)
+        render json: { message: "Successfully" }, status: :ok
+    else
+        render json: { message: "Product not found or Update failed" }, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    product = Product.find_by(id: params[:id])
+
+    if product.nil?
+        render json: { message: "Product not exist" }, status: :not_found
+    elsif product.destroy
+        render json: { message: "Deleted product" }, status: :ok
+    else
+        render json: { message: "Product not found" }, status: :unprocessable_entity
+    end
   end
 
   private

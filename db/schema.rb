@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_09_020715) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_17_065757) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -57,5 +57,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_09_020715) do
     t.decimal "price"
     t.bigint "product_id", null: false
     t.datetime "updated_at", null: false
+    t.string "sku", null: false
+    t.integer "stock", default: 0, null: false
+    t.decimal "variant_price", default: "0.0", null: false
+    t.index ["sku"], name: "index_variants_on_sku", unique: true
   end
 end
