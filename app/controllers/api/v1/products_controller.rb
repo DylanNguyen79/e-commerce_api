@@ -7,17 +7,25 @@ class Api::V1::ProductsController < ApplicationController
       product = Product.find_by(id: params[:id])
 
       if product
-        render json: product, status: :ok
+        render json: product, include: {
+            variants: {
+                include: {
+                    option_values: {
+                        include: :option
+                    }
+                }
+            }
+        }, status: :ok
       else
         render json: { message: "Product not found" }, status: :not_found
       end
     end
 
     def create
-    product = Product.create(product_params)
+    product = Product.new(product_params)
 
-    puts ("new")
-    puts product.inspect
+    if product.save
+
     variant_count = 1
     variant_ids = []
     option_ids = []
@@ -26,14 +34,14 @@ class Api::V1::ProductsController < ApplicationController
     vov_arr = []
 
     # Get Option ID && Option Value ID
-    params[:options].map do |option|
+    params[:options].each do |option|
         opt = Option.create(name: option["name"])
         option_ids.push(opt.id)
 
         variant_count *= option[:option_values].size
 
         option_value_ids = []
-        option[:option_values].map do |opt_val|
+        option[:option_values].each do |opt_val|
             option_value = OptionValue.create(values: opt_val, option_id: opt.id)
             option_value_ids.push(option_value.id)
         end
@@ -83,7 +91,12 @@ class Api::V1::ProductsController < ApplicationController
     end
 
     render json: product, status: :created
+    else
+        render json: { errors: product.errors.full_messages }, status: :unprocessable_entity
     end
+    end
+
+
 
   def update
     product = Product.find_by(id: params[:id])
