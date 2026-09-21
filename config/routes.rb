@@ -14,6 +14,7 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resources :products
+     post "customers/signup", to: "customers#signup"
     end
   end
 end
