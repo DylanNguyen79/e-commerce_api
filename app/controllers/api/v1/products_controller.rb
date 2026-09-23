@@ -1,6 +1,6 @@
 class Api::V1::ProductsController < ApplicationController
     def index
-      render json: Product.all, status: :ok
+      render json: Product.all, status: 200
     end
 
     def show
@@ -15,85 +15,81 @@ class Api::V1::ProductsController < ApplicationController
                     }
                 }
             }
-        }, status: :ok
+        }, status: 200
       else
-        render json: { message: "Product not found" }, status: :not_found
+        render json: { message: "Product not found" }, status: 404
       end
     end
 
     def create
-    product = Product.new(product_params)
+        product = Product.new(product_params)
 
-    if product.save
+        if product.save
 
-    variant_count = 1
-    variant_ids = []
-    option_ids = []
-    option_value_ids = []
-    option_value_group = []
-    vov_arr = []
-
-    # Get Option ID && Option Value ID
-    params[:options].each do |option|
-        opt = Option.create(name: option["name"])
-        option_ids.push(opt.id)
-
-        variant_count *= option[:option_values].size
-
+        variant_count = 1
+        variant_ids = []
+        option_ids = []
         option_value_ids = []
-        option[:option_values].each do |opt_val|
-            option_value = OptionValue.create(values: opt_val, option_id: opt.id)
-            option_value_ids.push(option_value.id)
+        option_value_group = []
+        vov_arr = []
+
+        # Get Option ID && Option Value ID
+        params[:options].each do |option|
+            opt = Option.create(name: option["name"])
+            option_ids.push(opt.id)
+
+            variant_count *= option[:option_values].size
+
+            option_value_ids = []
+            option[:option_values].each do |opt_val|
+                option_value = OptionValue.create(values: opt_val, option_id: opt.id)
+                option_value_ids.push(option_value.id)
+            end
+            option_value_group.push(option_value_ids)
         end
-        option_value_group.push(option_value_ids)
-    end
 
-    params[:variants].each do |variant|
-        variant = Variant.create(
-            product_id: product.id,
-            sku: variant[:sku],
-            stock: variant[:stock],
-            variant_price: variant[:variant_price],
-        )
-        variant_ids.push(variant.id)
-    end
-
-    # # Get Variant ID
-    # variant_count.times do |i|
-    #     variant = Variant.create(
-    #         product_id: product.id,
-    #         sku:
-    #         price: product.price
-    #         stock:
-    #         )
-    #     variant_ids.push(variant.id)
-    # end
-
-    # Create data for VariantOptionValue
-    option_value_group.each_with_index do |opt_val, j|
-      t = variant_ids.size / opt_val.size
-      t.times do |x|
-        opt_val.each do |z|
-          vov_arr.push(option_id: option_ids[j], option_value_id: z)
+        # Get VariantID
+        params[:variants].each do |variant|
+            variant = Variant.create(
+                product_id: product.id,
+                sku: variant[:sku],
+                stock: variant[:stock],
+                variant_price: variant[:variant_price],
+            )
+            variant_ids.push(variant.id)
         end
-      end
-    end
-    vov_arr.each_with_index do |var, i|
-      vov_arr[i][:variant_id] = variant_ids[i % variant_ids.size]
-    end
 
-    vov_arr.each do |vov|
-        VariantOptionValue.create(
-            variant_id: vov[:variant_id],
-            option_id: vov[:option_id],
-            option_value_id: vov[:option_value_id]
-        )
-    end
+        # Create combinations of OptionValue IDs
+        combinations = option_value_group.reduce([ [] ]) do |result, group|
+            result.flat_map do |combination|
+                group.map do |option_value_id|
+                combination + [ option_value_id ]
+                end
+            end
+        end
 
-    render json: product, status: :created
-    else
-        render json: { errors: product.errors.full_messages }, status: :unprocessable_entity
-    end
+        # Create data for VariantOptionValue
+        combinations.each_with_index do |combination, i|
+            combination.each_with_index do |option_value_id, j|
+                vov_arr.push(
+                variant_id: variant_ids[i],
+                option_id: option_ids[j],
+                option_value_id: option_value_id
+                )
+            end
+        end
+
+        vov_arr.each do |vov|
+            VariantOptionValue.create(
+                variant_id: vov[:variant_id],
+                option_id: vov[:option_id],
+                option_value_id: vov[:option_value_id]
+            )
+        end
+            render json: product, status: 201
+        else
+            render json: { errors: product.errors.full_messages }, status: 422
+        end
     end
 
 
@@ -102,9 +98,9 @@ class Api::V1::ProductsController < ApplicationController
     product = Product.find_by(id: params[:id])
 
     if product && product.update(product_params)
-        render json: { message: "Successfully" }, status: :ok
+        render json: { message: "Successfully" }, status: 200
     else
-        render json: { message: "Product not found or Update failed" }, status: :unprocessable_entity
+        render json: { message: "Product not found or Update failed" }, status: 422
     end
   end
 
@@ -112,11 +108,11 @@ class Api::V1::ProductsController < ApplicationController
     product = Product.find_by(id: params[:id])
 
     if product.nil?
-        render json: { message: "Product not exist" }, status: :not_found
+        render json: { message: "Product not exist" }, status: 404
     elsif product.destroy
-        render json: { message: "Deleted product" }, status: :ok
+        render json: { message: "Deleted product" }, status: 200
     else
-        render json: { message: "Product not found" }, status: :unprocessable_entity
+        render json: { message: "Product not found" }, status: 422
     end
   end
 
