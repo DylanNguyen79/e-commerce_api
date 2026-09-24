@@ -16,6 +16,8 @@ Rails.application.routes.draw do
       resources :products
      post "customers/signup", to: "customers#signup"
      post "customers/login", to: "customers#login"
+     patch "customers/:id", to: "customers#update"
+     delete "customers/:id", to: "customers#destroy"
     end
   end
 end
