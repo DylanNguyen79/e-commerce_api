@@ -98,7 +98,7 @@ class Api::V1::ProductsController < ApplicationController
     product = Product.find_by(id: params[:id])
 
     if product && product.update(product_params)
-        render json: { message: "Successfully" }, status: 200
+        render json: { message: "Updated successfully" }, status: 200
     else
         render json: { message: "Product not found or Update failed" }, status: 422
     end

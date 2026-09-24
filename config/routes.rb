@@ -15,6 +15,7 @@ Rails.application.routes.draw do
     namespace :v1 do
       resources :products
      post "customers/signup", to: "customers#signup"
+     post "customers/login", to: "customers#login"
     end
   end
 end
